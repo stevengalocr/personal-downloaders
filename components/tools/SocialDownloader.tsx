@@ -12,8 +12,9 @@ import {
   Music,
   ArrowRight,
 } from 'lucide-react';
+import type { Translations } from '@/lib/i18n';
 
-/* ── Types ──────────────────────────────────────────────────────── */
+/* ── Types ──────────────────────────────────────────────────────────── */
 
 type Platform = 'reels' | 'tiktok';
 type DownloadOption = { label: string; url: string; type: 'video' | 'audio' };
@@ -26,7 +27,7 @@ type VideoResult = {
   downloads: DownloadOption[];
 };
 
-/* ── Per-platform theme ─────────────────────────────────────────── */
+/* ── Per-platform theme ─────────────────────────────────────────────── */
 
 const THEME = {
   reels: {
@@ -59,13 +60,14 @@ const THEME = {
   },
 } as const;
 
-/* ── Component ──────────────────────────────────────────────────── */
+/* ── Component ──────────────────────────────────────────────────────── */
 
 interface Props {
   platform: Platform;
+  t: Translations;
 }
 
-export default function SocialDownloader({ platform }: Props) {
+export default function SocialDownloader({ platform, t }: Props) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VideoResult | null>(null);
@@ -76,8 +78,10 @@ export default function SocialDownloader({ platform }: Props) {
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const theme = THEME[platform];
+  const td = t.downloader;
+  const te = t.errors;
 
-  /* Reset when platform switches */
+  /* Reset when platform or language switches */
   useEffect(() => {
     setUrl('');
     setResult(null);
@@ -103,12 +107,12 @@ export default function SocialDownloader({ platform }: Props) {
     }, 1000);
   };
 
-  /* ── Fetch ──────────────────────────────────────────────────────── */
+  /* ── Fetch ──────────────────────────────────────────────────────────── */
 
   const fetchVideo = async () => {
     const trimmed = url.trim();
     if (!trimmed) {
-      setError('Introduce un enlace válido.');
+      setError(te.emptyUrl);
       return;
     }
     if (cooldown > 0) return;
@@ -127,14 +131,14 @@ export default function SocialDownloader({ platform }: Props) {
 
       if (res.status === 429) {
         startCooldown(60);
-        setError(json.error || 'Demasiadas solicitudes. Espera un momento.');
+        setError(te.tooMany);
       } else if (!res.ok || !json.success) {
-        setError(json.error || 'No se pudo procesar el video.');
+        setError(te.notFound);
       } else {
         setResult(json.data as VideoResult);
       }
     } catch {
-      setError('Error de conexión. Comprueba tu internet e inténtalo de nuevo.');
+      setError(te.connection);
     } finally {
       setLoading(false);
     }
@@ -144,7 +148,7 @@ export default function SocialDownloader({ platform }: Props) {
     if (e.key === 'Enter') fetchVideo();
   };
 
-  /* ── Download ───────────────────────────────────────────────────── */
+  /* ── Download ───────────────────────────────────────────────────────── */
 
   const handleDownload = async (opt: DownloadOption) => {
     setDownloading(opt.label);
@@ -174,11 +178,11 @@ export default function SocialDownloader({ platform }: Props) {
       setResult(null);
       setError('');
     } catch {
-      /* no clipboard permission */
+      /* clipboard permission denied */
     }
   };
 
-  /* ── Render ─────────────────────────────────────────────────────── */
+  /* ── Render ─────────────────────────────────────────────────────────── */
 
   return (
     <div className="space-y-3">
@@ -197,24 +201,25 @@ export default function SocialDownloader({ platform }: Props) {
             }}
             onKeyDown={handleKey}
             placeholder={theme.placeholder}
+            aria-label="Video URL"
             className="flex-1 bg-transparent px-4 py-3 text-sm text-white placeholder-zinc-600 outline-none font-mono min-w-0"
           />
           <button
             onClick={fetchVideo}
             disabled={loading || !url.trim() || cooldown > 0}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r ${theme.btnGradient} text-white text-sm font-semibold shadow-lg ${theme.btnShadow} transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none whitespace-nowrap shrink-0`}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r ${theme.btnGradient} text-white text-sm font-semibold shadow-lg ${theme.btnShadow} transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none whitespace-nowrap shrink-0 cursor-pointer`}
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="hidden sm:inline">Buscando</span>
+                <span className="hidden sm:inline">{td.btnFetching}</span>
               </>
             ) : cooldown > 0 ? (
               <span>{cooldown}s</span>
             ) : (
               <>
                 <ArrowRight className="w-4 h-4" />
-                <span className="hidden sm:inline">Obtener</span>
+                <span className="hidden sm:inline">{td.btnGet}</span>
               </>
             )}
           </button>
@@ -222,10 +227,10 @@ export default function SocialDownloader({ platform }: Props) {
 
         <button
           onClick={handlePaste}
-          className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition-colors font-mono pl-2 group"
+          className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition-colors font-mono pl-2 group cursor-pointer"
         >
           <Clipboard className="w-3 h-3 group-hover:text-zinc-400 transition-colors" />
-          Pegar desde portapapeles
+          {td.paste}
         </button>
       </div>
 
@@ -238,6 +243,7 @@ export default function SocialDownloader({ platform }: Props) {
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.2 }}
             className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-400 text-sm"
+            role="alert"
           >
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
             <span className="leading-relaxed">{error}</span>
@@ -277,8 +283,7 @@ export default function SocialDownloader({ platform }: Props) {
                   </p>
                 )}
                 <span className={`text-xs font-mono mt-1 ${theme.countAccent}`}>
-                  {result.downloads.length} opción{result.downloads.length !== 1 ? 'es' : ''}{' '}
-                  disponible{result.downloads.length !== 1 ? 's' : ''}
+                  {td.available(result.downloads.length)}
                 </span>
               </div>
             </div>
@@ -298,7 +303,7 @@ export default function SocialDownloader({ platform }: Props) {
                     transition={{ delay: i * 0.06, duration: 0.25 }}
                     onClick={() => handleDownload(opt)}
                     disabled={!!downloading}
-                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-white/8 bg-white/[0.02] text-left transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed ${
+                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-white/8 bg-white/[0.02] text-left transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed cursor-pointer ${
                       isDone
                         ? theme.doneBg
                         : !downloading
@@ -334,17 +339,17 @@ export default function SocialDownloader({ platform }: Props) {
                       {isBusy ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span className="hidden sm:inline">Descargando</span>
+                          <span className="hidden sm:inline">{td.downloading}</span>
                         </>
                       ) : isDone ? (
                         <>
                           <CheckCircle className="w-3.5 h-3.5" />
-                          Listo
+                          {td.done}
                         </>
                       ) : (
                         <>
                           <Download className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Descargar</span>
+                          <span className="hidden sm:inline">{td.download}</span>
                         </>
                       )}
                     </span>
@@ -354,7 +359,7 @@ export default function SocialDownloader({ platform }: Props) {
             </div>
 
             <p className="text-[11px] text-zinc-700 font-mono leading-relaxed pl-1">
-              Solo descarga contenido del que tengas permisos. Respeta los derechos de autor.
+              {td.disclaimer}
             </p>
           </motion.div>
         )}
