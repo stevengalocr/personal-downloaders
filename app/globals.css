@@ -90,8 +90,32 @@
 }
 
 /* ── Remove Spline "Built with Spline" watermark ──────────────────── */
-canvas ~ div,
-a[href*="spline.design"] {
+/* Anchor badge and every element inside it */
+a[href*="spline.design"],
+a[href*="spline.design"] * {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
   pointer-events: none !important;
+}
+
+/* The wrapper div Spline injects around the badge anchor */
+a[href*="spline.design"]:is(a) {
+  display: none !important;
+}
+
+/* Any sibling div that appears right after a canvas (Spline badge pattern) */
+canvas + div,
+canvas ~ div[style],
+canvas ~ div > a[href*="spline"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Spline logo image / svg inside badge */
+[class*="spline"] a,
+[id*="spline"] a {
+  display: none !important;
 }

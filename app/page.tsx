@@ -161,19 +161,25 @@ export default function Home() {
           </motion.div>
         </header>
 
-        {/* ── Mobile robot ──────────────────────────────────────────── */}
+        {/* ── Mobile / tablet robot ─────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.2 }}
-          className="block lg:hidden relative h-60 sm:h-72 overflow-hidden"
+          className="block lg:hidden relative h-72 sm:h-80 md:h-[26rem] overflow-hidden"
         >
           <RobotScene glowColor={pConfig.glowColor} />
-          {/* top + bottom fades */}
-          <div className="absolute top-0 inset-x-0 h-16 z-10 pointer-events-none"
+          {/* top fade — thin so the robot head isn't clipped */}
+          <div className="absolute top-0 inset-x-0 h-10 z-10 pointer-events-none"
             style={{ background: `linear-gradient(to bottom, ${BG}, transparent)` }} />
-          <div className="absolute bottom-0 inset-x-0 h-28 z-10 pointer-events-none"
-            style={{ background: `linear-gradient(to top, ${BG} 20%, rgba(2,2,2,0.5) 60%, transparent)` }} />
+          {/* bottom fade — covers badge area + blends into page */}
+          <div className="absolute bottom-0 inset-x-0 h-24 z-10 pointer-events-none"
+            style={{ background: `linear-gradient(to top, ${BG} 30%, rgba(2,2,2,0.55) 65%, transparent)` }} />
+          {/* left + right subtle fades for tablets */}
+          <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none"
+            style={{ background: `linear-gradient(to right, ${BG}, transparent)` }} />
+          <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none"
+            style={{ background: `linear-gradient(to left, ${BG}, transparent)` }} />
         </motion.div>
 
         {/* ── Hero ──────────────────────────────────────────────────── */}
