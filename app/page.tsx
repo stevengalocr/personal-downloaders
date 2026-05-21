@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import SocialDownloader from '@/components/tools/SocialDownloader';
+import { LangSwitcher } from '@/components/ui/lang-switcher';
+import { TRANSLATIONS, type Lang } from '@/lib/i18n';
 
 const WHOBEE_SCENE = 'https://prod.spline.design/PyzDhpQ9E5f1E3MT/scene.splinecode';
-
 const BG = '#020202';
 
 /* Spline — client-only */
@@ -28,19 +29,19 @@ const InteractiveRobotSpline = dynamic(
   }
 );
 
-/* ── Platform config ──────────────────────────────────────────────── */
+/* ── Platform config ────────────────────────────────────────────────── */
 
 type Platform = 'reels' | 'tiktok';
 
 const PLATFORMS = {
   reels: {
-    label: 'Instagram',
     gradient: 'from-violet-500 via-fuchsia-500 to-pink-500',
     activePill: 'from-violet-600 to-fuchsia-600',
     glowColor: 'rgba(124,58,237,0.18)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        aria-hidden="true">
         <rect x="2" y="2" width="20" height="20" rx="5" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
@@ -48,13 +49,13 @@ const PLATFORMS = {
     ),
   },
   tiktok: {
-    label: 'TikTok',
     gradient: 'from-cyan-400 via-sky-500 to-blue-600',
     activePill: 'from-cyan-600 to-blue-600',
     glowColor: 'rgba(6,182,212,0.16)',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        aria-hidden="true">
         <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
       </svg>
     ),
@@ -67,16 +68,11 @@ const fadeUp = (delay: number) => ({
   transition: { duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] },
 });
 
-/* ── Robot scene helper ───────────────────────────────────────────── */
+/* ── Robot scene helper ─────────────────────────────────────────────── */
 
-/**
- * Renders the Whobee Spline scene with a platform-tinted ambient glow.
- * Must be placed inside a `relative` container.
- */
 function RobotScene({ glowColor }: { glowColor: string }) {
   return (
     <div className="relative w-full h-full">
-      {/* Ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none transition-all duration-1000 z-0"
         style={{
@@ -88,42 +84,29 @@ function RobotScene({ glowColor }: { glowColor: string }) {
   );
 }
 
-/* ── Fade helper ──────────────────────────────────────────────────── */
-
-type Edge = 'top' | 'bottom' | 'left' | 'right';
-
-function Fade({ edge, size }: { edge: Edge; size: number }) {
-  const pos: Record<Edge, string> = {
-    top: `top-0 inset-x-0 h-[${size}px]`,
-    bottom: `bottom-0 inset-x-0 h-[${size}px]`,
-    left: `left-0 top-0 bottom-0 w-[${size}px]`,
-    right: `right-0 top-0 bottom-0 w-[${size}px]`,
-  };
-  const dir: Record<Edge, string> = {
-    top: 'to bottom',
-    bottom: 'to top',
-    left: 'to right',
-    right: 'to left',
-  };
-  const isVertical = edge === 'top' || edge === 'bottom';
-
-  return (
-    <div
-      className={`absolute z-10 pointer-events-none ${pos[edge]}`}
-      style={{
-        background: `linear-gradient(${dir[edge]}, ${BG} ${isVertical ? '15%' : '20%'}, transparent)`,
-        ...(isVertical ? {} : { width: size }),
-        ...(isVertical ? { height: size } : {}),
-      }}
-    />
-  );
-}
-
-/* ── Page ─────────────────────────────────────────────────────────── */
+/* ── Page ───────────────────────────────────────────────────────────── */
 
 export default function Home() {
   const [platform, setPlatform] = useState<Platform>('reels');
+  const [lang, setLang] = useState<Lang>('es');
+
+  /* Persist language preference */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('galodev-lang') as Lang | null;
+      if (saved && ['es', 'en', 'pt'].includes(saved)) setLang(saved);
+    } catch {
+      /* localStorage not available */
+    }
+  }, []);
+
+  const handleLangChange = (next: Lang) => {
+    setLang(next);
+    try { localStorage.setItem('galodev-lang', next); } catch { /* noop */ }
+  };
+
   const pConfig = PLATFORMS[platform];
+  const t = TRANSLATIONS[lang];
 
   return (
     <div className="relative min-h-screen bg-[#020202] overflow-x-hidden noise-overlay">
@@ -143,8 +126,9 @@ export default function Home() {
 
       <div className="relative z-10 flex flex-col min-h-screen">
 
-        {/* ── Header ────────────────────────────────────────────────── */}
-        <header className="flex items-center px-6 sm:px-10 py-5">
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <header className="flex items-center justify-between px-6 sm:px-10 py-5">
+          {/* Branding */}
           <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -159,9 +143,18 @@ export default function Home() {
               downloader
             </span>
           </motion.div>
+
+          {/* Language switcher */}
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            <LangSwitcher lang={lang} onChange={handleLangChange} />
+          </motion.div>
         </header>
 
-        {/* ── Mobile / tablet robot ─────────────────────────────────── */}
+        {/* ── Mobile / tablet robot ──────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -169,20 +162,20 @@ export default function Home() {
           className="block lg:hidden relative h-72 sm:h-80 md:h-[26rem] overflow-hidden"
         >
           <RobotScene glowColor={pConfig.glowColor} />
-          {/* top fade — thin so the robot head isn't clipped */}
+          {/* top fade — thin so robot head isn't clipped */}
           <div className="absolute top-0 inset-x-0 h-10 z-10 pointer-events-none"
             style={{ background: `linear-gradient(to bottom, ${BG}, transparent)` }} />
-          {/* bottom fade — covers badge area + blends into page */}
+          {/* bottom fade */}
           <div className="absolute bottom-0 inset-x-0 h-24 z-10 pointer-events-none"
             style={{ background: `linear-gradient(to top, ${BG} 30%, rgba(2,2,2,0.55) 65%, transparent)` }} />
-          {/* left + right subtle fades for tablets */}
+          {/* side fades for tablets */}
           <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none"
             style={{ background: `linear-gradient(to right, ${BG}, transparent)` }} />
           <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none"
             style={{ background: `linear-gradient(to left, ${BG}, transparent)` }} />
         </motion.div>
 
-        {/* ── Hero ──────────────────────────────────────────────────── */}
+        {/* ── Hero ────────────────────────────────────────────────────── */}
         <main className="flex-1 flex items-center py-4 lg:py-10">
           <div className="w-full max-w-7xl mx-auto px-6 sm:px-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-center">
@@ -192,15 +185,43 @@ export default function Home() {
 
                 <motion.div {...fadeUp(0)} className="space-y-3">
                   <h1 className="text-4xl sm:text-5xl xl:text-[3.4rem] font-extrabold leading-[1.06] tracking-tight">
-                    <span className="text-gradient-neutral">Descarga lo que</span>
-                    <br />
-                    <span className={`bg-gradient-to-r ${pConfig.gradient} bg-clip-text text-transparent transition-all duration-700`}>
-                      más te gusta
-                    </span>
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={`${lang}-line1`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.28 }}
+                        className="block text-gradient-neutral"
+                      >
+                        {t.hero.line1}
+                      </motion.span>
+                    </AnimatePresence>
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={`${lang}-line2`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.28, delay: 0.05 }}
+                        className={`block bg-gradient-to-r ${pConfig.gradient} bg-clip-text text-transparent transition-all duration-700`}
+                      >
+                        {t.hero.line2}
+                      </motion.span>
+                    </AnimatePresence>
                   </h1>
-                  <p className="text-zinc-400 text-base sm:text-lg leading-relaxed max-w-sm">
-                    Reels y TikToks sin marca de agua. Sin registro, sin esperas.
-                  </p>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={`${lang}-subtitle`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-zinc-400 text-base sm:text-lg leading-relaxed max-w-sm"
+                    >
+                      {t.hero.subtitle}
+                    </motion.p>
+                  </AnimatePresence>
                 </motion.div>
 
                 {/* Platform tabs */}
@@ -212,14 +233,14 @@ export default function Home() {
                         <button
                           key={key}
                           onClick={() => setPlatform(key)}
-                          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
+                          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 cursor-pointer ${
                             isActive
                               ? `bg-gradient-to-r ${cfg.activePill} text-white shadow-lg`
                               : 'text-zinc-500 hover:text-zinc-300'
                           }`}
                         >
                           <span className={isActive ? 'text-white' : 'opacity-60'}>{cfg.icon}</span>
-                          {cfg.label}
+                          {t.platforms[key]}
                         </button>
                       );
                     })}
@@ -236,14 +257,14 @@ export default function Home() {
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.22 }}
                     >
-                      <SocialDownloader platform={platform} />
+                      <SocialDownloader platform={platform} t={t} />
                     </motion.div>
                   </AnimatePresence>
                 </motion.div>
 
               </div>
 
-              {/* Right: desktop robot — 4-sided vignette, no frame */}
+              {/* Right: desktop robot — 4-sided vignette */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -251,22 +272,17 @@ export default function Home() {
                 className="hidden lg:block relative overflow-hidden self-stretch"
                 style={{ minHeight: '580px' }}
               >
-                {/* Scene fills the whole column */}
                 <div className="absolute inset-0">
                   <RobotScene glowColor={pConfig.glowColor} />
                 </div>
 
-                {/* 4-sided fades — masks all scene edges cleanly */}
-                {/* Top */}
+                {/* 4-sided fades */}
                 <div className="absolute top-0 inset-x-0 h-32 z-10 pointer-events-none"
                   style={{ background: `linear-gradient(to bottom, ${BG} 5%, transparent)` }} />
-                {/* Left — blends into content column */}
                 <div className="absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
                   style={{ background: `linear-gradient(to right, ${BG} 10%, transparent)` }} />
-                {/* Right */}
                 <div className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
                   style={{ background: `linear-gradient(to left, ${BG} 0%, transparent)` }} />
-                {/* Bottom */}
                 <div className="absolute bottom-0 inset-x-0 h-48 z-10 pointer-events-none"
                   style={{ background: `linear-gradient(to top, ${BG} 10%, rgba(2,2,2,0.65) 45%, transparent)` }} />
               </motion.div>
@@ -278,7 +294,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="px-6 sm:px-10 py-5 flex items-center justify-between border-t border-white/[0.04]">
           <p className="text-xs text-zinc-700 font-mono">
-            © {new Date().getFullYear()} GaloDev · Solo para contenido con permisos
+            © {new Date().getFullYear()} GaloDev · {t.footer.rights}
           </p>
           <span className="text-xs font-mono text-zinc-800">v1.0</span>
         </footer>
